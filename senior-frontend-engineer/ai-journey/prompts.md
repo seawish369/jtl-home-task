@@ -99,3 +99,29 @@ start step 5
 3. The key={assigneeId} remount on /todos is fine; I'll note the trade-off (a half-typed title is lost when switching the filter) in the README.
 
 Run the checks you listed, plus: creating a todo before the list has finished loading still works and the new todo shows once the list loads.
+
+# prompt 13
+
+start step 6
+
+# prompt 14
+
+1. Bug: isMutating({ mutationKey }) === 1 counts creates for all assignees. Create for ada, then quickly for grace: ada's create settles while grace's is pending, so ada's list is never refetched. Count only pending creates for the same assignee (e.g. a predicate on mutation.state.variables.assigneeId). Add a test for this case.
+
+2. Failures: if two creates fail, keep both titles in the alert (a list) until the next successful submit or until it's dismissed — don't let the second failure overwrite the first.
+
+3. Announce the submit: set the status region to "Saving “X” for <name>…" when the form submits, then "Added …" on success. The item may be in a list that isn't on screen.
+
+4. Tell me what happens if a refetch (e.g. window focus) finishes while a create is pending. Either keep pending temp items when that data arrives, or tell me it's an accepted trade-off and I'll note it in the README.
+
+5. Catch the mutateAsync rejection in the form (no unhandled rejections). If the form unmounted, skip the title restore; the hook still rolls back.
+
+Keep the rest as planned. Read Vitest 5's config API from the installed package before writing the config, as you said.
+
+# prompt 15
+
+Bug in CreateTodoForm, found in a real browser: submit "please fail", then immediately "Second ok". The first fails, then the second succeeds ~30 ms later and clears the alert because 2 > 1. The user sees the title come back with no error message.
+
+A success should only clear failures that were already visible when that submission was made. Suggestion: number failures as they arrive; at submit, remember the latest failure number; on success, remove only failures up to that number.
+
+Add a test that renders CreateTodoForm (not just the hook) for this exact sequence: first fails, second succeeds after it → the alert still lists the first title. Break the fix on purpose to confirm the test fails.

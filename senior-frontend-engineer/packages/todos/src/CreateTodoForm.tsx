@@ -6,6 +6,8 @@ import { useCreateTodo } from './use-create-todo';
 
 type Field = keyof CreateTodoInput;
 type FieldErrors = Partial<Record<Field, string>>;
+/** `id` is the failure's arrival number (1, 2, 3…), used to decide what a success may clear. */
+type Failure = { id: number; title: string; message: string };
 const FIELD_ORDER: Field[] = ['title', 'assigneeId'];
 
 export type CreateTodoFormProps = {
@@ -25,16 +27,36 @@ function validate(values: { title: string; assigneeId: string }) {
 
 const firstInvalid = (errors: FieldErrors) => FIELD_ORDER.find((field) => errors[field]);
 
+function failureMessage(error: unknown): string {
+  if (!isApiError(error)) return 'Something went wrong.';
+  const fieldMessages = Object.values(error.fieldErrors);
+  return fieldMessages.length > 0 ? fieldMessages.join(' ') : error.message;
+}
+
 export function CreateTodoForm({ assigneeOptions, defaultAssigneeId = '', onCreated }: CreateTodoFormProps) {
   const createTodo = useCreateTodo();
   const [title, setTitle] = useState('');
   const [assigneeId, setAssigneeId] = useState(defaultAssigneeId);
   const [errors, setErrors] = useState<FieldErrors>({});
-  const [formError, setFormError] = useState<string>();
+  const [failures, setFailures] = useState<Failure[]>([]);
   const [statusMessage, setStatusMessage] = useState('');
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
   const assigneeRef = useRef<HTMLSelectElement>(null);
+
+  // Failures are numbered as they arrive. A successful submission clears only the
+  // failures that were already on screen when it was submitted, never ones that
+  // arrive while it is in flight (e.g. "please fail" then "Second ok" right after).
+  const failureCount = useRef(0);
+
+  // Results can arrive after the form unmounted (e.g. the user navigated away).
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   // Focus after the error has rendered, so it is announced with the field.
   const [focusRequest, setFocusRequest] = useState<{ field: Field } | null>(null);
@@ -43,55 +65,82 @@ export function CreateTodoForm({ assigneeOptions, defaultAssigneeId = '', onCrea
     (focusRequest.field === 'title' ? titleRef : assigneeRef).current?.focus();
   }, [focusRequest]);
 
-  function showErrors(next: FieldErrors) {
-    setErrors(next);
-    const field = firstInvalid(next);
-    if (field) setFocusRequest({ field });
-  }
+  const labelFor = (id: string) => assigneeOptions.find((option) => option.id === id)?.label ?? 'the selected user';
 
   function update(next: { title: string; assigneeId: string }) {
     setTitle(next.title);
     setAssigneeId(next.assigneeId);
-    // Validate as you type only after the first submit, so errors clear as you fix them.
+    // Validate as you type only after a failed submit, so errors clear as you fix them.
     if (hasSubmitted) setErrors(validate(next).errors);
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (createTodo.isPending) return;
     setHasSubmitted(true);
-    setFormError(undefined);
-    setStatusMessage('');
 
     const { data, errors: clientErrors } = validate({ title, assigneeId });
     if (!data) {
-      showErrors(clientErrors);
+      setErrors(clientErrors);
+      const field = firstInvalid(clientErrors);
+      if (field) setFocusRequest({ field });
       return;
     }
-    setErrors({});
 
-    createTodo.mutate(data, {
-      onSuccess: (todo) => {
-        const label = assigneeOptions.find((option) => option.id === todo.assigneeId)?.label ?? 'the selected user';
-        setTitle('');
-        setHasSubmitted(false);
+    // Optimistic: the item is already in the list, so the form is ready for the next one.
+    // A double submit is harmless: the title is empty now and fails validation.
+    const failuresSeenAtSubmit = failureCount.current;
+    const label = labelFor(data.assigneeId);
+    setErrors({});
+    setHasSubmitted(false);
+    setTitle('');
+    setStatusMessage(`Saving “${data.title}” for ${label}…`);
+    setFocusRequest({ field: 'title' });
+
+    // mutateAsync, not mutate: mutate's per-call callbacks only fire for the latest call,
+    // so with two quick creates the first one's failure would be lost.
+    createTodo
+      .mutateAsync(data)
+      .then((todo) => {
+        if (!mounted.current) return;
         setStatusMessage(`Added “${todo.title}” for ${label}.`);
-        setFocusRequest({ field: 'title' });
+        setFailures((current) => current.filter((failure) => failure.id > failuresSeenAtSubmit));
         onCreated?.(todo);
-      },
-      onError: (error) => {
-        const serverErrors: FieldErrors = isApiError(error)
-          ? { title: error.fieldErrors.title, assigneeId: error.fieldErrors.assigneeId }
-          : {};
-        if (firstInvalid(serverErrors)) showErrors(serverErrors);
-        else setFormError(isApiError(error) ? error.message : 'Something went wrong. Please try again.');
-      },
-    });
+      })
+      .catch((error: unknown) => {
+        // The hook has already rolled the list back; only the form's own state is left.
+        if (!mounted.current) return;
+        const id = ++failureCount.current;
+        setStatusMessage('');
+        // Give the title back, but never overwrite something new the user typed.
+        setTitle((current) => (current === '' ? data.title : current));
+        setFailures((current) => [...current, { id, title: data.title, message: failureMessage(error) }]);
+      });
+  }
+
+  function dismissFailures() {
+    setFailures([]);
+    setFocusRequest({ field: 'title' }); // the focused Dismiss button is about to disappear
   }
 
   return (
     <form noValidate onSubmit={handleSubmit} className="space-y-4">
-      {formError && <Alert>{formError}</Alert>}
+      {failures.length > 0 && (
+        <Alert>
+          <p className="font-medium">
+            {failures.length === 1 ? 'This todo could not be saved:' : 'These todos could not be saved:'}
+          </p>
+          <ul className="mt-1 list-disc pl-5">
+            {failures.map((failure) => (
+              <li key={failure.id}>
+                “{failure.title}”: {failure.message}
+              </li>
+            ))}
+          </ul>
+          <Button variant="secondary" className="mt-3" onClick={dismissFailures}>
+            Dismiss
+          </Button>
+        </Alert>
+      )}
       <TextField
         ref={titleRef}
         label="Title"
@@ -118,12 +167,9 @@ export function CreateTodoForm({ assigneeOptions, defaultAssigneeId = '', onCrea
         ))}
       </SelectField>
       <div className="flex flex-wrap items-center gap-4">
-        {/* Stays enabled (and focusable) while saving; extra submits are ignored above. */}
-        <Button type="submit" aria-disabled={createTodo.isPending || undefined}>
-          {createTodo.isPending ? 'Adding…' : 'Add todo'}
-        </Button>
+        <Button type="submit">Add todo</Button>
         {/* Always rendered so screen readers pick up changes to it. */}
-        <p role="status" className="text-sm text-green-800">
+        <p role="status" className="text-sm text-slate-700">
           {statusMessage}
         </p>
       </div>

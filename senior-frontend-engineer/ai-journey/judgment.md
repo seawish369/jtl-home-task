@@ -213,3 +213,59 @@
   - the user detail page loads user and todos in parallel
   - IDs survive a reload
 - Lint and typecheck pass; grep confirms
+
+## Step 6: optimistic create
+
+### AI caught a TanStack Query trap
+
+- **AI proposed:** Use mutateAsync() in the form instead of mutate() with per-call callbacks.
+- **Why it's right:** Callbacks passed to mutate() only run for the latest call. With two quick creates, the first one's failure would never reach the form.
+- **What I did:** Kept it.
+
+### Refetch condition counted every assignee
+
+- **AI proposed:** Refetch when the last pending create settles: `isMutating({ mutationKey }) === 1`.
+- **Problem:** That counts creates for all assignees. Create for ada, then quickly for grace: ada's create settles while grace's is still pending, so ada's list is never refetched.
+- **How I found it:** Reviewing the plan with a concrete two-assignee sequence.
+- **What I did:** Count only pending creates for the same assignee; added a test.
+
+### Additions to the plan
+
+- Keep every failed title in the alert, so a second failure can't hide the first.
+- Announce "Saving “X” for <name>…" on submit, since the form clears immediately and the item may be in a list that isn't on screen.
+
+### Plan fixes confirmed in the browser
+
+- The per-assignee refetch works: ada's POST finished at 4486 ms and her list re-synced at 4487 ms while grace's create was still pending.
+
+### Alert cleared by an earlier submission's success
+
+- **AI proposed:** Number submissions; a success clears failures with a lower submission number.
+- **Problem:** Submit "please fail", then "Second ok". The first fails, the second succeeds 30 ms later and clears the alert: the title comes back with no message, for sighted and screen reader users alike.
+- **How I found it:** My own browser check of the "two quick creates, one fails" case. The AI's unit tests only covered the hook, and its browser check looked at the restored title but not the alert.
+- **What I did:** A success now only clears failures that were already visible when that submission was made. Added a form-level test and broke the fix on purpose to confirm the test catches it.
+
+### AI corrected its own earlier claim
+
+- In step 5 the AI said invalidateQueries cancelled the slow first load. After reading the installed query.js, it corrected this: a fetch is only cancelled when the query already has data. The extra GET was StrictMode. Step 6 has a test showing the first load's signal is never aborted.
+
+### Tests that couldn't fail
+
+- The AI broke each behaviour on purpose (7 cases). Two tests passed anyway: one read state before TanStack Query's notification arrived, and one checked after the final refetch had already hidden the duplicate. Both were fixed until all 7 breakages failed a test.
+
+### Trade-offs for the README
+
+- If the list hasn't loaded when you submit, no optimistic item is shown; it appears when the save finishes.
+- If the form unmounts (navigate away, filter change) before a create fails, the list still rolls back but the title and error message are lost.
+- The todo form no longer has a saving state on the button; the user form keeps it.
+
+### The fix, verified both ways
+
+- A form-level test replays the exact sequence (first fails, second succeeds after it → alert still lists the first). A second test checks the opposite (a failure already on screen is cleared by a later success), so the fix can't just stop clearing altogether.
+- Broke the fix both ways on purpose; each broken version fails one test. Re-ran the sequence in a real browser myself: the alert stays.
+
+### Hidden test leak found along the way
+
+- **What happened:** The new form test failed with "Found multiple elements with the text of: Title".
+- **Cause:** Testing Library only cleans up automatically when Vitest globals are on; we import from 'vitest' explicitly, so each test's DOM stayed for the next. The earlier hook tests had the same leak without a visible effect.
+- **What I did:** Accepted the AI's vitest.setup.ts that runs cleanup() after every test.
