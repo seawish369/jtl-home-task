@@ -45,3 +45,22 @@
 ### Where AI helped most
 
 - The first plan review found real gaps I hadn't written down: the snapshot-rollback trap with two concurrent creates, MSW needing to run in production builds, Tailwind `@source` for unbuilt packages, and the conflict between clearing the form and "keeping my text" on failure.
+
+## Step 1: scaffold
+
+### AI was more precise than my instruction (accepted)
+
+- **I asked for:** `engines.node: ">=22"`.
+- **AI set:** `">=22.12.0"`.
+- **Why it's right:** Vite 8 needs Node 22.12+; with ">=22", someone on 22.5 could install but Vite wouldn't run. The AI had pointed this out earlier; I'd missed it.
+- **What I did:** Kept its version.
+
+### A tool changed the repo, not the AI
+
+- **What happened:** An AGENTS.md file appeared. Turborepo writes it automatically when it detects an AI agent running its commands.
+- **How I found it:** Checked untracked files before committing.
+- **What I did:** <kept and committed it / disabled it with agentGuidance: false>. Also ignored `.claude/settings.local.json` (local agent permissions).
+
+### Verified, not trusted
+
+- Ran lint and typecheck myself, opened the page, and checked the built CSS contains the ui package's Tailwind classes (`@source` works).

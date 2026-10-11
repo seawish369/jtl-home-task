@@ -1,0 +1,5 @@
+@import 'tailwindcss';
+
+/* Workspace packages ship TS source and live under node_modules (symlinked),
+   which Tailwind skips by default. Register each package that uses classes. */
+@source '../../../packages/ui/src';

@@ -1,0 +1,4 @@
+{
+  "extends": "@todo-app/config/tsconfig.base.json",
+  "include": ["src"]
+}

@@ -38,3 +38,8 @@ I'll update plan.md with these decisions. Don't create or edit any files, includ
 Yes to all, with one clarification on the optimistic create: do both. On success, replace the temp item in place (no flicker). And when the last pending create settles, still invalidate the list so it re-syncs with the server. The in-place swap doesn't replace that refetch.
 
 I'm updating plan.md and committing it now. After that I'll say "start step 1".
+
+# prompt 4
+
+1. Agree to use Node 22 LTS, I will install it by myself
+2. agree to pin
