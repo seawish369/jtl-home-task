@@ -150,3 +150,66 @@
 ### A step 3 fix that slipped through
 
 - The pnpm 11 pin I asked for before committing step 3 wasn't applied; step 3 was committed with pnpm 12, which corepack can't install. Caught while reviewing step 4; fixing it in its own commit.
+
+## Step 5: todos feature
+
+### AI's architecture choice I agreed with
+
+- **AI proposed:** The todo list uses useQuery with its own loading/error/empty states, not Suspense; loaders only start fetching.
+- **Why it's right:** Step 7 needs the Jotai active user, which a route loader can't read; and step 6 needs the form to work while the list is still loading.
+
+### Additions to the plan
+
+- Fixed the list order (oldest first) so the optimistic item appended in step 6 doesn't jump when the list refetches.
+- Parallel loading on the user detail page instead of sequential awaits.
+- Added a check for creating a todo before the list has loaded, as a baseline for step 6.
+
+### Accepted trade-off
+
+- Switching the assignee filter on /todos remounts the form, so a half-typed title is lost. Simple and predictable; noted in the README.
+
+### A step 3 bug found in step 5
+
+- **What happened:** The mock database created random seed IDs on load but only saved them to localStorage after the first write. Reloading before any write produced new IDs, so a bookmarked /users/<id> or ?assigneeId= link showed "not found".
+- **How it was found:** The AI hit it while testing a reload on /todos?assigneeId=… in a real browser. I reproduced it independently.
+- **What I did:** Accepted the fix (save the seed data as soon as it's created). Lesson: some bugs only show up when a later step uses the data in a new way, here a user ID kept in the URL.
+
+### Investigated before fixing: duplicate GET in dev
+
+- **What happened:** Changing the filter sent two GET /api/todos requests.
+- **How it was checked:** The AI suspected React StrictMode (mount → unmount → remount; the query passes the AbortSignal, so the first fetch is cancelled) and compared against a production build: one request there.
+- **What I did:** No change. Dev-only, and cancelling on unmount is the behaviour we want.
+
+### Accessibility detail kept
+
+- **AI proposed:** Show the success message in a `<p role="status">` that is always on the page, instead of an Alert rendered only after success.
+- **Why it's right:** Screen readers reliably announce changes to a live region that already exists, but often miss one that is inserted together with its text.
+
+### Lint pushed toward simpler code
+
+- **What happened:** The React Compiler lint rule rejected reading refs out of an object (`fieldRefs.title`) during render.
+- **What I did:** Accepted the AI's switch to two plain refs. It's clearer, and an eslint-disable comment went away.
+
+### Baseline for step 6, measured
+
+- **What happened:** Creating a todo while the list was still loading: first GET at 1215 ms, POST at 1650 ms, new GET at 3164 ms. The create's `invalidateQueries` cancelled the slow first load and started it again, so the list appeared ~2 s later than necessary.
+- **What I did:** Added "don't cancel the first load of a list that isn't cached yet" to the step 6 prompt, with a regression test.
+- **Also for step 6:** The form remounts when the filter changes, so rollback and refetch must go in the `useMutation` callbacks, not the per-call `mutate(…, { onError })` callbacks, which are lost on unmount.
+
+### Found in my review
+
+- **Problem:** With ?assigneeId=bogus, the select showed "Choose a user", but the form state held "bogus". Submitting skipped client validation and got the server error "Choose an existing user."
+- **What I did:** fixed: the form only preselects defaultAssigneeId if it exists in assigneeOptions.
+
+### Verified independently
+
+- A second AI session ran a keyboard-only flow in a real browser:
+  - ada's todos load oldest first
+  - the form's assignee follows the filter
+  - empty or too long titles get the right messages, with focus on the field
+  - a new todo is appended last, with the title cleared, focus back on Title and the status announced
+  - assigning to grace from ada's page leaves ada's list unchanged
+  - a "fail" title shows the Alert and keeps the text
+  - the user detail page loads user and todos in parallel
+  - IDs survive a reload
+- Lint and typecheck pass; grep confirms

@@ -87,3 +87,15 @@ start step 4
 2. Don't set maxLength on the input; let people type and show the validation message instead.
 3. When the server returns a field error (e.g. the 409 duplicate), move focus to that field too, not only for client-side errors.
 4. While saving, keep the button enabled but set aria-disabled="true" and ignore extra submits.
+
+# prompt 11
+
+start step 5
+
+# prompt 12
+
+1. List order: oldest first, newest last, matching the mock. In step 6 the optimistic item is appended to the end, so the order must not change when the list refetches.
+2. In the /users/$userId loader, load the user and the users list in parallel (Promise.all), and only prefetch the todos without awaiting them. Don't make the page wait for requests one after another.
+3. The key={assigneeId} remount on /todos is fine; I'll note the trade-off (a half-typed title is lost when switching the filter) in the README.
+
+Run the checks you listed, plus: creating a todo before the list has finished loading still works and the new todo shows once the list loads.

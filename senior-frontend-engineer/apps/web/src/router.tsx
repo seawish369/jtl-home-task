@@ -8,6 +8,7 @@ import {
   type AnyRouter,
 } from '@tanstack/react-router';
 import { isNotFoundError } from '@todo-app/core';
+import { todosQueries } from '@todo-app/todos';
 import { usersQueries } from '@todo-app/users';
 import * as z from 'zod';
 import { NotFound } from './components/NotFound';
@@ -42,9 +43,15 @@ const usersRoute = createRoute({
 const userDetailRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/users/$userId',
-  loader: async ({ context, params }) => {
+  loader: async ({ context: { queryClient }, params: { userId } }) => {
+    // Start the todos now but don't wait: the list shows its own loading state.
+    void queryClient.prefetchQuery(todosQueries.list(userId));
     try {
-      await context.queryClient.ensureQueryData(usersQueries.detail(params.userId));
+      // The user and the users list (for the assignee picker) load in parallel.
+      await Promise.all([
+        queryClient.ensureQueryData(usersQueries.detail(userId)),
+        queryClient.ensureQueryData(usersQueries.list()),
+      ]);
     } catch (error) {
       // A missing user is a "not found" page, not a crash; anything else goes to RouteError.
       if (isNotFoundError(error)) throw notFound();
@@ -64,6 +71,11 @@ const todosRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/todos',
   validateSearch: todosSearchSchema,
+  loaderDeps: ({ search }) => ({ assigneeId: search.assigneeId }),
+  loader: async ({ context: { queryClient }, deps: { assigneeId } }) => {
+    if (assigneeId) void queryClient.prefetchQuery(todosQueries.list(assigneeId));
+    await queryClient.ensureQueryData(usersQueries.list());
+  },
   component: lazyRouteComponent(() => import('./pages/TodosPage'), 'TodosPage'),
 });
 

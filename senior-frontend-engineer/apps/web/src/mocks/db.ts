@@ -35,15 +35,23 @@ function load(): Db {
   } catch {
     // Unreadable or blocked storage: fall back to the seed data.
   }
-  return seed();
+  // Save the seed right away: its IDs are random, so without this every reload
+  // before the first write would invent new IDs and break bookmarked URLs.
+  const seeded = seed();
+  save(seeded);
+  return seeded;
+}
+
+function save(data: Db): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // Storage full or blocked: keep working in memory.
+  }
 }
 
 export const db = load();
 
 export function persist(): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-  } catch {
-    // Storage full or blocked: keep working in memory.
-  }
+  save(db);
 }
