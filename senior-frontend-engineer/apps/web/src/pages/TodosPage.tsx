@@ -1,7 +1,7 @@
 import { getRouteApi } from '@tanstack/react-router';
 import { AssigneeTodoList, CreateTodoForm } from '@todo-app/todos';
 import { SelectField } from '@todo-app/ui';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { PageHeading } from '../components/PageHeading';
 import { resolveAssignee } from '../resolve-assignee';
 import { useActiveUserId } from '../state/active-user';
@@ -20,6 +20,19 @@ export function TodosPage() {
   const labelFor = (id: string | null | undefined) => assigneeOptions.find((option) => option.id === id)?.label;
   const activeLabel = labelFor(activeUserId);
   const listLabel = labelFor(listAssigneeId);
+
+  // The list can change without a navigation or focus move (header picker, filter).
+  // Announce it; but not on first render, where focus on the <h1> already gives context.
+  const [shownAssigneeId, setShownAssigneeId] = useState(listAssigneeId);
+  const [listAnnouncement, setListAnnouncement] = useState('');
+  if (shownAssigneeId !== listAssigneeId) {
+    setShownAssigneeId(listAssigneeId);
+    setListAnnouncement(
+      listAssigneeId === undefined
+        ? 'No user selected.'
+        : `Showing todos for ${listLabel ?? 'an unknown user'}.`,
+    );
+  }
 
   return (
     <>
@@ -42,6 +55,10 @@ export function TodosPage() {
           </option>
         ))}
       </SelectField>
+
+      <p role="status" className="sr-only">
+        {listAnnouncement}
+      </p>
 
       <section aria-labelledby="todo-list-heading" className="mt-6">
         <h2 id="todo-list-heading" className="mb-2 text-lg font-semibold text-slate-900">

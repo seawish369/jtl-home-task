@@ -141,3 +141,32 @@ Please add:
 3. The header picker uses a plain useQuery, so it never suspends the layout.
 4. On /users/$userId, changing the active user must not remount or change the form (the page wins). Check this in the browser.
 5. Put the precedence in one pure function, e.g. resolveAssignee({ pageUserId, urlAssigneeId, activeUserId, validIds }), with unit tests in apps/web for each rule, including a bogus URL ID.
+
+# prompt 18
+
+start step 8
+
+# prompt 19
+
+Yes, start Part A with axe-core in your scratch folder. Also:
+
+1. Run axe while a todo is pending too (opacity-60 + "Saving…" may fail contrast), not only on settled states.
+2. Check whether changing the active user on /todos is announced (the list changes, only the heading text changes).
+3. Check a 320px-wide viewport: header with the picker wraps, no horizontal scroll.
+4. Check focus after browser Back/Forward lands on the <h1>, not <body>.
+
+Service worker fallback: yes, do it in step 8. If worker.start() fails, render a short message in #root explaining the app needs service workers for its mock API and suggesting a normal (non-private) window. Test it by making worker.start() reject.
+
+# prompt 20
+
+Go ahead with Part B: all 7 findings, including #6.
+
+One more finding from a second check that recorded what a screen reader actually receives (live-region changes plus the focused element's name and description):
+
+8. Serious (WCAG 4.1.3 / 3.3.1): validation errors aren't announced when you submit with Enter from the field. Focus is already on the input, so focus() is a no-op, no focus event fires, and the new aria-describedby text is never read. Happens for Username ("ab", the 409 duplicate) and Title. The audit checked where focus is, not what gets announced. Fix it so the error is announced even when the invalid field already has focus (for example, also put the message in the form's live region on a failed submit). Re-check both forms.
+
+9. Minor: move the Dismiss button outside the role="alert" element, so the alert doesn't read "…Please try again. Dismiss".
+
+For #1: note that it's a regression from step 7's "only preselect real options" fix, which exposed the stale users-list cache.
+
+After the fixes, re-run axe, the keyboard walkthrough, and an announcement log (what each live region says at each step) for: invalid username, duplicate, add todo, failed todo, changing the active user and the filter.

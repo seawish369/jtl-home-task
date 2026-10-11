@@ -1,8 +1,21 @@
-import { Link, Outlet } from '@tanstack/react-router';
+import { Link, Outlet, useRouterState } from '@tanstack/react-router';
+import type { ReactNode } from 'react';
 import { ActiveUserPicker } from './ActiveUserPicker';
 
 const navLinkClass =
   'rounded px-2 py-1 text-slate-700 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-600';
+
+// aria-current="page" only on the exact page (any search params); the underline marks the
+// whole section, so "Users" stays highlighted on /users/$userId without claiming to be it.
+function NavLink({ to, children }: { to: '/users' | '/todos'; children: ReactNode }) {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const inSection = pathname === to || pathname.startsWith(`${to}/`);
+  return (
+    <Link to={to} activeOptions={{ exact: true, includeSearch: false }} className={`${navLinkClass} ${inSection ? 'font-semibold underline' : ''}`}>
+      {children}
+    </Link>
+  );
+}
 
 export function RootLayout() {
   return (
@@ -21,14 +34,10 @@ export function RootLayout() {
           <nav aria-label="Main">
             <ul className="flex gap-2">
               <li>
-                <Link to="/users" className={navLinkClass} activeProps={{ className: 'font-semibold underline' }}>
-                  Users
-                </Link>
+                <NavLink to="/users">Users</NavLink>
               </li>
               <li>
-                <Link to="/todos" className={navLinkClass} activeProps={{ className: 'font-semibold underline' }}>
-                  Todos
-                </Link>
+                <NavLink to="/todos">Todos</NavLink>
               </li>
             </ul>
           </nav>

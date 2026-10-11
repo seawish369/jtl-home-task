@@ -43,6 +43,10 @@ export function CreateTodoForm({ assigneeOptions, defaultAssigneeId = '', onCrea
   const [errors, setErrors] = useState<FieldErrors>({});
   const [failures, setFailures] = useState<Failure[]>([]);
   const [statusMessage, setStatusMessage] = useState('');
+  // For errors on a field that already has focus: focusing it again is a no-op, so its
+  // new description would never be read. The key forces a fresh node, so repeating the
+  // same message is announced again.
+  const [errorAnnouncement, setErrorAnnouncement] = useState({ text: '', count: 0 });
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
   const assigneeRef = useRef<HTMLSelectElement>(null);
@@ -85,7 +89,13 @@ export function CreateTodoForm({ assigneeOptions, defaultAssigneeId = '', onCrea
     if (!data) {
       setErrors(clientErrors);
       const field = firstInvalid(clientErrors);
-      if (field) setFocusRequest({ field });
+      const target = (field === 'title' ? titleRef : assigneeRef).current;
+      if (field && target === document.activeElement) {
+        const messages = FIELD_ORDER.flatMap((name) => clientErrors[name] ?? []);
+        setErrorAnnouncement((current) => ({ text: messages.join(' '), count: current.count + 1 }));
+      } else if (field) {
+        setFocusRequest({ field });
+      }
       return;
     }
 
@@ -128,21 +138,24 @@ export function CreateTodoForm({ assigneeOptions, defaultAssigneeId = '', onCrea
   return (
     <form noValidate onSubmit={handleSubmit} className="space-y-4">
       {failures.length > 0 && (
-        <Alert>
-          <p className="font-medium">
-            {failures.length === 1 ? 'This todo could not be saved:' : 'These todos could not be saved:'}
-          </p>
-          <ul className="mt-1 list-disc pl-5">
-            {failures.map((failure) => (
-              <li key={failure.id}>
-                “{failure.title}”: {failure.message}
-              </li>
-            ))}
-          </ul>
-          <Button variant="secondary" className="mt-3" onClick={dismissFailures}>
+        <div className="space-y-2">
+          <Alert>
+            <p className="font-medium">
+              {failures.length === 1 ? 'This todo could not be saved:' : 'These todos could not be saved:'}
+            </p>
+            <ul className="mt-1 list-disc pl-5">
+              {failures.map((failure) => (
+                <li key={failure.id}>
+                  “{failure.title}”: {failure.message}
+                </li>
+              ))}
+            </ul>
+          </Alert>
+          {/* Outside the alert, so the announcement doesn't end with "Dismiss". */}
+          <Button variant="secondary" onClick={dismissFailures}>
             Dismiss
           </Button>
-        </Alert>
+        </div>
       )}
       <TextField
         ref={titleRef}
@@ -176,6 +189,9 @@ export function CreateTodoForm({ assigneeOptions, defaultAssigneeId = '', onCrea
           {statusMessage}
         </p>
       </div>
+      <p aria-live="assertive" className="sr-only">
+        <span key={errorAnnouncement.count}>{errorAnnouncement.text}</span>
+      </p>
     </form>
   );
 }

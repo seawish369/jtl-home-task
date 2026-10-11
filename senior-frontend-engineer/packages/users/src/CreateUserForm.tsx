@@ -23,6 +23,10 @@ export function CreateUserForm({ onCreated }: CreateUserFormProps) {
   const [formError, setFormError] = useState<string>();
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  // For errors while the field already has focus: focusing it again is a no-op, so its
+  // new description would never be read. The key forces a fresh node, so repeating the
+  // same message is announced again.
+  const [errorAnnouncement, setErrorAnnouncement] = useState({ text: '', count: 0 });
 
   // Focus the field after the error has rendered, so it is announced with it.
   const [focusRequest, setFocusRequest] = useState(0);
@@ -32,7 +36,11 @@ export function CreateUserForm({ onCreated }: CreateUserFormProps) {
 
   function showUsernameError(message: string) {
     setUsernameError(message);
-    setFocusRequest((n) => n + 1);
+    if (inputRef.current === document.activeElement) {
+      setErrorAnnouncement((current) => ({ text: message, count: current.count + 1 }));
+    } else {
+      setFocusRequest((n) => n + 1); // focusing the field reads the error via aria-describedby
+    }
   }
 
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
@@ -83,6 +91,9 @@ export function CreateUserForm({ onCreated }: CreateUserFormProps) {
       <Button type="submit" aria-disabled={createUser.isPending || undefined}>
         {createUser.isPending ? 'Creating…' : 'Create user'}
       </Button>
+      <p aria-live="assertive" className="sr-only">
+        <span key={errorAnnouncement.count}>{errorAnnouncement.text}</span>
+      </p>
     </form>
   );
 }

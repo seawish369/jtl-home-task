@@ -103,11 +103,15 @@ export function createAppRouter(context: RouterContext) {
 }
 
 // After a client-side navigation to a new page, move focus to its <h1> so screen
-// reader and keyboard users start at the new content. Search-only changes
-// (e.g. a filter) and the first page load keep focus where it is.
+// reader and keyboard users start at the new content. Search-only changes (e.g. a
+// filter) keep focus where it is, unless the focused element disappeared in the
+// re-render (e.g. Back from ?assigneeId=… remounts the form): then the <h1> too,
+// never <body>. The first page load keeps focus where it is.
 function focusHeadingOnNavigate(router: AnyRouter) {
   router.subscribe('onRendered', ({ fromLocation, pathChanged }) => {
-    if (!fromLocation || !pathChanged) return;
+    if (!fromLocation) return;
+    const focusLost = !document.activeElement || document.activeElement === document.body;
+    if (!pathChanged && !focusLost) return;
     document.querySelector<HTMLElement>('main h1')?.focus();
   });
 }

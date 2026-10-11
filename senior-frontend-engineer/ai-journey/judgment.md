@@ -315,3 +315,61 @@
 
 - On /todos, changing the active user remounts the form (a half-typed title is lost), same as changing the filter.
 - A stale saved ID costs one extra 404 prefetch on load; harmless, since components only use IDs that exist.
+
+## Step 8: accessibility and keyboard pass
+
+### Audit first, fix second
+
+- **AI proposed:** Split the step: an audit with no code changes (keyboard-only walkthrough, axe-core on every page state, manual review of announcements), then fixes only after I approve the findings.
+- **Why I agreed:** It keeps the step reviewable and stops "while I'm here" refactors. axe-core runs from a scratch folder, so the project gets no new dependency.
+
+### Additions to the audit
+
+- Run axe while a todo is pending, not only on settled pages: the faded pending item is the most likely contrast failure, and it only exists for ~1.5 s.
+- Check the step 7 note (active user change isn't announced), a 320px viewport, and focus after browser Back/Forward.
+
+### Service worker fallback (decided)
+
+- **Problem:** Without service workers (e.g. a Firefox private window) the app showed a blank page, because the mock API couldn't start.
+- **What I did:** A short message explains why and what to do. Reviewers may open the app in any browser, so a blank page is the worst first impression.
+
+### Audit findings (AI)
+
+- axe (run while a todo was pending): "Saving…" at 2.88:1 contrast.
+- Focus dropped to <body> on Back from /todos?assigneeId=… (the form remounted with the focused field).
+- Active user/filter changes not announced; aria-current on the wrong link; inconsistent focus rings.
+- A functional bug: on a new user's page, the todo form didn't preselect that user.
+
+### A regression caused by an earlier fix
+
+- **What happened:** Step 7's "only preselect an assignee that exists in the options" exposed a stale cache: right after creating a user, the users list in the cache doesn't contain them yet, so their own page preselected nobody and "Add todo" failed.
+- **How found:** The AI's keyboard-only walkthrough in step 8.
+- **What I did:** useCreateUser now adds the new user to the cached list immediately (and still refetches). Lesson: a stricter rule in one place can surface stale data elsewhere; the end-to-end walkthrough is what caught it.
+
+### Errors not announced: found by checking what a screen reader receives
+
+- **Problem:** Submitting an invalid form with Enter from the field showed the error but announced nothing. Focus was already on the input, so focus() fired no event and the new description was never read.
+- **How I found it:** A second AI session recorded every live-region change and the focused element's name and description at each step. The first audit only checked where focus was.
+- **What I did:** Asked for the error to be announced even when the field already has focus, and moved Dismiss out of the alert so it isn't read as part of the message.
+
+### AI caught its own mistakes in the fixes
+
+- The service worker fallback first handled only a rejected register(). With no serviceWorker API at all, the page was still blank, because MSW touches the API when its module is imported. Moving the import inside the try fixed it.
+- Exact matching for aria-current also compared search params, so "Todos" lost it on /todos?assigneeId=…; fixed with includeSearch: false.
+- Its own announcement logger first missed a repeated error, because it only watched text changes while screen readers react to added nodes.
+
+### Side effect worth noting
+
+- Importing MSW dynamically split it into its own chunk: the main chunk went from 633 kB to 237 kB. The mock still loads before the first render, so startup is about the same; a real app wouldn't ship MSW at all.
+
+### Verified independently
+
+- A second AI session re-ran every finding:
+  - errors are announced while the field keeps focus, including a repeat of the same error
+  - list changes are announced
+  - axe: 0 violations, including while a todo is pending
+  - a new user's page preselects them
+  - Back/Forward focus lands on the <h1>
+  - aria-current is correct on all four routes
+  - both service-worker failure modes show the message
+- It also re-ran the step 6 and step 7 browser checks: no regressions.
