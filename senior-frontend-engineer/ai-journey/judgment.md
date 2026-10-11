@@ -93,3 +93,26 @@
 - **What happened:** Lint and typecheck passed, but Turbo's log showed it calling pnpm from my Node 18 install, not the pinned pnpm on Node 22.
 - **Why it matters:** The project needs Node ≥ 22.12 (Vite 8); later steps and "fresh clone runs" would break or behave differently.
 - **What I did:** Set Node 22 as default with nvm, enabled corepack, re-ran install, lint and typecheck.
+
+## Step 3: mock API and routing
+
+### AI read the new MSW major instead of guessing
+
+- **What happened:** MSW 3 was new to the AI. It downloaded the package to a scratch folder and read its types and Vite plugin source (without running it) before planning.
+- **Result:** Used the stable `worker-only` mode of the new `msw/vite` plugin instead of the experimental default; no `msw init` step needed.
+
+### Route files split per route (changed)
+
+- **AI proposed:** Two files per route (definition + lazy page) plus a tree file.
+- **Problem:** I picked code-based routing so the whole route tree is readable in one file; this split loses that.
+- **What I did:** All route definitions in one router.tsx; only page components are separate, lazy-loaded files.
+
+### Mock latency tuned for step 6
+
+- **AI proposed:** 400–800 ms on every response.
+- **What I did:** POST /api/todos ~1.5 s, so the optimistic "Saving…" state and two overlapping creates can be tested by hand.
+
+### Mock validates on its own (accepted)
+
+- **AI proposed:** The mock checks its own rules instead of importing the client's Zod schemas.
+- **Why I agreed:** It behaves like a real, independent server; a bug in client validation would still be caught. Cost: a few rules exist twice. Noted in the README.

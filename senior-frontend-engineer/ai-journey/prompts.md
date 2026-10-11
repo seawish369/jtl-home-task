@@ -58,3 +58,21 @@ Start step 2
 6. ApiError must let callers tell a 404 apart from other errors, and a network failure (no response) apart from a server error.
 
 The rest is fine, including zod as a peer of core and using ESLint's built-in rule instead of a plugin. Go ahead.
+
+# prompt 7
+
+start step 3
+
+# prompt 8
+
+MSW runs in every mode, as the plan says.
+Yes, start the users data layer now (listUsers + usersQueries.list()).
+
+Changes to the file list: 3. Route definitions go in one file, src/router.tsx: paths, loaders, validateSearch and the tree. Only page components live in separate files (e.g. src/pages/UsersPage.tsx) and are lazy-loaded. I chose code-based routes so the whole tree is readable in one place; splitting each route into two files loses that. 4. Mock latency: 400–800 ms for most requests, but POST /api/todos takes about 1.5 s, so the optimistic state is easy to see and test in step 6. 5. Keep the mock's own validation rules (not importing client schemas). I'll note the trade-off in the README.
+
+When step 3 is done, show me:
+
+- /api/users in the Network tab when /users loads, and an unknown URL showing the 404 page,
+- the http client handling: GET /api/users/<unknown id> → isNotFoundError, a network failure, an aborted request, and a response that fails the schema,
+- `pnpm build && pnpm preview` still serving the mock API.
+  Then run lint and typecheck from the root.
