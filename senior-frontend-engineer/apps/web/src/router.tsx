@@ -4,14 +4,17 @@ import {
   createRoute,
   createRouter,
   lazyRouteComponent,
+  notFound,
   type AnyRouter,
 } from '@tanstack/react-router';
+import { isNotFoundError } from '@todo-app/core';
 import { usersQueries } from '@todo-app/users';
 import * as z from 'zod';
 import { NotFound } from './components/NotFound';
 import { RootLayout } from './components/RootLayout';
 import { RouteError } from './components/RouteError';
 import { RoutePending } from './components/RoutePending';
+import { UserNotFound } from './components/UserNotFound';
 
 // The whole route tree lives here so it reads top to bottom in one place.
 // Only page components are split out, and each is lazy-loaded (one chunk per page).
@@ -39,6 +42,16 @@ const usersRoute = createRoute({
 const userDetailRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/users/$userId',
+  loader: async ({ context, params }) => {
+    try {
+      await context.queryClient.ensureQueryData(usersQueries.detail(params.userId));
+    } catch (error) {
+      // A missing user is a "not found" page, not a crash; anything else goes to RouteError.
+      if (isNotFoundError(error)) throw notFound();
+      throw error;
+    }
+  },
+  notFoundComponent: UserNotFound,
   component: lazyRouteComponent(() => import('./pages/UserDetailPage'), 'UserDetailPage'),
 });
 

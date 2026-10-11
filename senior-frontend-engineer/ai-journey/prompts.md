@@ -76,3 +76,14 @@ When step 3 is done, show me:
 - the http client handling: GET /api/users/<unknown id> → isNotFoundError, a network failure, an aborted request, and a response that fails the schema,
 - `pnpm build && pnpm preview` still serving the mock API.
   Then run lint and typecheck from the root.
+
+# prompt 9
+
+start step 4
+
+# prompt 10
+
+1. Show the rule up front as a hint on the field: "3–20 letters or numbers." Users should know the rule before they get it wrong.
+2. Don't set maxLength on the input; let people type and show the validation message instead.
+3. When the server returns a field error (e.g. the 409 duplicate), move focus to that field too, not only for client-side errors.
+4. While saving, keep the button enabled but set aria-disabled="true" and ignore extra submits.

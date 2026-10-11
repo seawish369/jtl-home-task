@@ -116,3 +116,37 @@
 
 - **AI proposed:** The mock checks its own rules instead of importing the client's Zod schemas.
 - **Why I agreed:** It behaves like a real, independent server; a bug in client validation would still be caught. Cost: a few rules exist twice. Noted in the README.
+
+## Step 4: users feature
+
+### AI caught an accessibility detail I didn't know
+
+- **AI proposed:** Don't disable the submit button while saving.
+- **Why:** Disabling the focused button sends focus back to <body>, so keyboard and screen reader users lose their place.
+- **What I did:** Kept it, and added aria-disabled="true" while saving so the state is still announced.
+
+### Form placement
+
+- **AI asked:** Form on /users or a separate /users/new route.
+- **I chose:** /users, above the list. The brief asks for a form, not a page; routing is already shown through a path param, a search param and notFound().
+
+### Additions to the AI's plan
+
+- Show the username rule as a hint up front; no maxLength (it blocks typing silently); move focus to the field for server errors too, not just client errors.
+
+### Verified independently
+
+- Ran the full flow in a real browser with keyboard only (second AI session): validation messages, 409 on the field with focus moved back, one POST despite repeated Enter/Space while saving, focus on the new user's <h1>, no extra detail request after create, list updated after Back, "User not found" for an unknown ID with a single request.
+
+### Accessibility details from the AI I kept
+
+- The submit button isn't disabled while saving (disabling a focused button drops focus to <body>); it uses aria-disabled instead and ignores extra submits.
+- Focus moves to the invalid field after the error has rendered, so screen readers announce the field with its new error. Focusing straight away would read the old description.
+
+### Unplanned change, accepted
+
+- The AI also edited Button.tsx (styles for aria-disabled). Not in the agreed file list, but it said so and the change is small and needed.
+
+### A step 3 fix that slipped through
+
+- The pnpm 11 pin I asked for before committing step 3 wasn't applied; step 3 was committed with pnpm 12, which corepack can't install. Caught while reviewing step 4; fixing it in its own commit.
