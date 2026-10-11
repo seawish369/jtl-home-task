@@ -170,3 +170,33 @@ One more finding from a second check that recorded what a screen reader actually
 For #1: note that it's a regression from step 7's "only preselect real options" fix, which exposed the stale users-list cache.
 
 After the fixes, re-run axe, the keyboard walkthrough, and an announcement log (what each live region says at each step) for: invalid username, duplicate, add todo, failed todo, changing the active user and the filter.
+
+# prompt 21
+
+Go ahead, with these changes:
+
+1. Write sections 1–3 and 5 of the README. For section 4 (Reflection), leave only the headings "Performance" and "Testing strategy" with a TODO; I'll write it myself.
+2. Root README: first check instructions.md for whether files outside senior-frontend-engineer/ may change. If nothing forbids it, add only a two-line pointer at the top; change nothing else there.
+3. Send the toolchain.md draft in chat (only what you used). I'll add my second verification session.
+4. Also list known gaps in the README: no real screen reader run, native select popups not driven (type-ahead used), browser checks were scripted in scratch folders and aren't committed as e2e tests.
+5. Do the fresh-clone check exactly as you described, through corepack with the pinned pnpm 11.28.2.
+
+# prompt 22
+
+The brief asks for a README of "about half a page". Please shorten senior-frontend-engineer/README.md to roughly that:
+
+- Run it: requirements + the 4 commands, and the demo tips in 3 short bullets.
+- Why this split: one short paragraph.
+- Key decisions: 5–6 one-line bullets (boundaries enforced by lint + pnpm, routing/loaders, optimistic create, Jotai only for the active user, Zod, MSW).
+- Trade-offs and known gaps: the 4–5 most important, one line each.
+- Reflection: keep my section as it is (I'm pasting it in).
+- Link to ai-journey/ and to the long version.
+  Move the current detailed architecture text, unchanged, into senior-frontend-engineer/docs/architecture.md and link to it. Don't touch ai-journey/.
+
+# prompt 23
+
+review my reflection section in the README
+
+# prompt 24
+
+apply 1, 2, 3 and 5. Also please help me reduce README to become short (about half a page)

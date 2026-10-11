@@ -373,3 +373,23 @@
   - aria-current is correct on all four routes
   - both service-worker failure modes show the message
 - It also re-ran the step 6 and step 7 browser checks: no regressions.
+
+## Step 9: README and fresh clone
+
+### AI changed my global environment, then undid it
+
+- **What happened:** During the fresh-clone check, nvm wasn't loaded in the agent's shell, so `corepack enable` ran under my Node 20 and created pnpm/yarn shims there.
+- **How found:** The AI noticed the failure, traced it, and removed the shims with `corepack disable`; I checked `which pnpm` myself afterwards.
+- **Lesson:** Environment-changing commands (corepack enable, global installs) need the same care as code changes; next time I'd ask for them to run in a container.
+
+### Brief compliance check
+
+- The first README was accurate but about four times the "half a page" the brief asks for. I had it shortened and moved the details to docs/architecture.md. I wrote the reflection myself.
+- A second session cloned the committed repo into an empty folder and ran install, lint, typecheck, tests, build and preview through corepack: all pass.
+
+### The reviewer's draft was reviewed too
+
+- **What happened:** I asked the coding agent to check my reflection (drafted with the second AI session) against the code and the build measurements.
+- **Problem:** It overclaimed. "No request waterfalls" ignores the sequential startup (main chunk → mock API chunk → service worker → loaders), and the mock API chunk was presented as a speed win although it still loads before the first render. It also missed re-renders, which the brief names first, and the gap between unit and end-to-end tests.
+- **What I did:** Rewrote it with the honest numbers, added re-renders and integration tests with msw/node, and kept 3 bullets per section.
+- **Lesson:** Having each AI check the other's output worked in both directions; a confident summary is exactly where overclaims slip in.

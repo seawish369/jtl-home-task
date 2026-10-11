@@ -1,3 +1,6 @@
+> **Frontend solution:** [`senior-frontend-engineer/README.md`](./senior-frontend-engineer/README.md) — how to run it, architecture, trade-offs.
+> AI journey: [`senior-frontend-engineer/ai-journey/`](./senior-frontend-engineer/ai-journey/).
+
 # JTL Take-Home Tasks
 
 This repository holds the take-home tasks we use as one step in our hiring process.
