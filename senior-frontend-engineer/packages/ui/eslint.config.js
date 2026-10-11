@@ -1,3 +1,3 @@
-import config from '@todo-app/config/eslint';
+import { createConfig } from '@todo-app/config/eslint';
 
-export default config;
+export default createConfig({ forbid: ['users', 'todos', 'router', 'jotai'] });

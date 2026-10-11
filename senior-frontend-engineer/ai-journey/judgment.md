@@ -64,3 +64,32 @@
 ### Verified, not trusted
 
 - Ran lint and typecheck myself, opened the page, and checked the built CSS contains the ui package's Tailwind classes (`@source` works).
+
+## Step 2: shared packages and boundary rule
+
+### Boundary rule didn't cover the plan's other rules
+
+- **AI proposed:** Lint forbids users ↔ todos and imports from apps/web.
+- **Problem:** The plan also says features don't use the router or Jotai, but nothing enforced it.
+- **What I did:** Added @tanstack/react-router and jotai to the forbidden list for users, todos, core and ui.
+
+### Form components up front (rejected)
+
+- **AI proposed:** Build TextField, SelectField and Alert in step 2 "so accessibility lives in one place".
+- **Why I said no:** Accessibility lives in packages/ui either way. In step 2 nothing uses them, so they can't be verified, and their API should come from real use.
+- **What I did:** TextField and Alert in step 4, SelectField in step 5.
+
+### Testing the test
+
+- **What I did:** Asked the AI to prove the boundary rule with both a type import and a value import, since lint rules can treat `import type` differently.
+- **Result:** Both were blocked. `import type { User } from '@todo-app/users'` and `import * as users from '@todo-app/users'` in todos each failed lint with the boundary message, and failed typecheck with TS2307 (todos doesn't list users as a dependency, so pnpm can't resolve it). Type imports are caught because the rule's `allowTypeImports` stays at its default (false). I also checked the other direction (users → todos) and a deep import from apps/web (`@todo-app/ui/src/...`): both fail lint too.
+
+### AI verified instead of guessing
+
+- Before claiming "2 retries", the AI read the installed TanStack Query retryer source to confirm the failure count starts at 0. Good habit; I'll keep asking for this kind of check.
+
+### Environment problem found through the logs
+
+- **What happened:** Lint and typecheck passed, but Turbo's log showed it calling pnpm from my Node 18 install, not the pinned pnpm on Node 22.
+- **Why it matters:** The project needs Node ≥ 22.12 (Vite 8); later steps and "fresh clone runs" would break or behave differently.
+- **What I did:** Set Node 22 as default with nvm, enabled corepack, re-ran install, lint and typecheck.
