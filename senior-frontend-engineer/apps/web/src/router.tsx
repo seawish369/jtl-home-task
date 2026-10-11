@@ -10,17 +10,19 @@ import {
 import { isNotFoundError } from '@todo-app/core';
 import { todosQueries } from '@todo-app/todos';
 import { usersQueries } from '@todo-app/users';
+import type { createStore } from 'jotai';
 import * as z from 'zod';
 import { NotFound } from './components/NotFound';
 import { RootLayout } from './components/RootLayout';
 import { RouteError } from './components/RouteError';
 import { RoutePending } from './components/RoutePending';
 import { UserNotFound } from './components/UserNotFound';
+import { activeUserIdAtom } from './state/active-user';
 
 // The whole route tree lives here so it reads top to bottom in one place.
 // Only page components are split out, and each is lazy-loaded (one chunk per page).
 
-type RouterContext = { queryClient: QueryClient };
+type RouterContext = { queryClient: QueryClient; store: ReturnType<typeof createStore> };
 
 const rootRoute = createRootRouteWithContext<RouterContext>()({
   component: RootLayout,
@@ -72,8 +74,12 @@ const todosRoute = createRoute({
   path: '/todos',
   validateSearch: todosSearchSchema,
   loaderDeps: ({ search }) => ({ assigneeId: search.assigneeId }),
-  loader: async ({ context: { queryClient }, deps: { assigneeId } }) => {
-    if (assigneeId) void queryClient.prefetchQuery(todosQueries.list(assigneeId));
+  loader: async ({ context: { queryClient, store }, deps: { assigneeId } }) => {
+    // Optimisation only: start the list the page will most likely show (URL, else the
+    // active user). The page's own query owns the data; this loader doesn't re-run
+    // when the active user changes.
+    const likelyAssigneeId = assigneeId ?? store.get(activeUserIdAtom);
+    if (likelyAssigneeId) void queryClient.prefetchQuery(todosQueries.list(likelyAssigneeId));
     await queryClient.ensureQueryData(usersQueries.list());
   },
   component: lazyRouteComponent(() => import('./pages/TodosPage'), 'TodosPage'),
@@ -81,10 +87,10 @@ const todosRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([indexRoute, usersRoute, userDetailRoute, todosRoute]);
 
-export function createAppRouter(queryClient: QueryClient) {
+export function createAppRouter(context: RouterContext) {
   const router = createRouter({
     routeTree,
-    context: { queryClient },
+    context,
     defaultPreload: 'intent',
     // TanStack Query owns caching; let the router call loaders every time.
     defaultPreloadStaleTime: 0,

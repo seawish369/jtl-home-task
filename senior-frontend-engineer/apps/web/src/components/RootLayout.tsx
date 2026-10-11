@@ -1,4 +1,5 @@
 import { Link, Outlet } from '@tanstack/react-router';
+import { ActiveUserPicker } from './ActiveUserPicker';
 
 const navLinkClass =
   'rounded px-2 py-1 text-slate-700 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-600';
@@ -13,7 +14,7 @@ export function RootLayout() {
         Skip to main content
       </a>
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-3">
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3">
           <Link to="/" className="font-semibold text-slate-900">
             Todo app
           </Link>
@@ -31,6 +32,7 @@ export function RootLayout() {
               </li>
             </ul>
           </nav>
+          <ActiveUserPicker />
         </div>
       </header>
       <main id="main" tabIndex={-1} className="mx-auto max-w-3xl px-4 py-8 focus:outline-none">

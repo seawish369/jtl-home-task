@@ -269,3 +269,49 @@
 - **What happened:** The new form test failed with "Found multiple elements with the text of: Title".
 - **Cause:** Testing Library only cleans up automatically when Vitest globals are on; we import from 'vitest' explicitly, so each test's DOM stayed for the next. The earlier hook tests had the same leak without a visible effect.
 - **What I did:** Accepted the AI's vitest.setup.ts that runs cleanup() after every test.
+
+## Step 7: active user
+
+### Jotai store in the router context (accepted)
+
+- **AI proposed:** An explicit Jotai store passed to both `<Provider>` and the router context, so the /todos loader can prefetch the active user's todos.
+- **Why I agreed:** On a direct load of /todos the list doesn't wait for the users list first (~600 ms saved), and loaders and components share one state. Feature packages still don't see Jotai.
+- **Caveat:** The loader only re-runs when the URL changes, so the prefetch is an optimisation; components still own the fetching.
+
+### Details from the AI I kept
+
+- `getOnInit`, so the first render after a reload already has the saved user and /todos doesn't flash the empty state.
+- The /todos filter's empty option says "Active user (ada)", so it's clear why that list is shown without anything in the URL.
+
+### Additions to the plan
+
+- Folded in the step 5 leftover: the form only preselects an assignee that exists. A bogus URL ID still shows "not found" (the URL wins) instead of falling back to the active user.
+- The saved ID is cleared only after the users list loaded successfully, never on a network error.
+- The precedence rule lives in one pure function with unit tests, because it's the core rule of this step and the easiest to get subtly wrong.
+
+### AI read the source instead of assuming
+
+- Jotai 3 is a new major. The AI read the installed atomWithStorage source and found getOnInit now defaults to off, so it sets it explicitly.
+
+### A misleading filter found in the browser (AI fixed it)
+
+- **What happened:** With ?assigneeId=bogus and ada active, the filter showed "Active user (ada)" while the list said "No user with this ID."
+- **Cause:** A select can't show a value it has no option for, so it falls back to its first option.
+- **What I did:** Accepted the AI's "Unknown user" option for an unknown URL ID.
+
+### Verified independently
+
+- A second AI session checked in a real browser:
+  - picking the active user with the keyboard
+  - reload never renders the empty state (watched with a MutationObserver from before the app starts)
+  - todos and users requests start together on a direct load (177 / 178 ms)
+  - URL over active user, and a bogus URL ID with no fallback
+  - the user page form untouched by a header change
+  - a stale saved ID is cleared
+  - a failed users request keeps the saved ID
+- 16 unit tests pass; the precedence tests fail when a rule is broken on purpose.
+
+### Trade-offs for the README
+
+- On /todos, changing the active user remounts the form (a half-typed title is lost), same as changing the filter.
+- A stale saved ID costs one extra 404 prefetch on load; harmless, since components only use IDs that exist.

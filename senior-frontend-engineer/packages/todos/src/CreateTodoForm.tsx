@@ -36,7 +36,10 @@ function failureMessage(error: unknown): string {
 export function CreateTodoForm({ assigneeOptions, defaultAssigneeId = '', onCreated }: CreateTodoFormProps) {
   const createTodo = useCreateTodo();
   const [title, setTitle] = useState('');
-  const [assigneeId, setAssigneeId] = useState(defaultAssigneeId);
+  // Only preselect an assignee that is actually an option (e.g. not ?assigneeId=bogus).
+  const [assigneeId, setAssigneeId] = useState(() =>
+    assigneeOptions.some((option) => option.id === defaultAssigneeId) ? defaultAssigneeId : '',
+  );
   const [errors, setErrors] = useState<FieldErrors>({});
   const [failures, setFailures] = useState<Failure[]>([]);
   const [statusMessage, setStatusMessage] = useState('');

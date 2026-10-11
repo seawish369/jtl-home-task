@@ -125,3 +125,19 @@ Bug in CreateTodoForm, found in a real browser: submit "please fail", then immed
 A success should only clear failures that were already visible when that submission was made. Suggestion: number failures as they arrive; at submit, remember the latest failure number; on success, remove only failures up to that number.
 
 Add a test that renders CreateTodoForm (not just the hook) for this exact sequence: first fails, second succeeds after it → the alert still lists the first title. Break the fix on purpose to confirm the test fails.
+
+# prompt 16
+
+start step 7
+
+# prompt 17
+
+Yes, go ahead with the store in the router context. The loader prefetch is only an optimisation; components still own the fetching, since the loader doesn't re-run when the active user changes.
+
+Please add:
+
+1. Fold in the step 5 leftover: the form only preselects an assignee that exists in assigneeOptions. With ?assigneeId=bogus, the list still shows "No user with this ID." (the URL wins, no fallback to the active user), and submitting shows the client message "Choose an assignee."
+2. Clear the saved ID only after the users list loaded successfully; never on an error.
+3. The header picker uses a plain useQuery, so it never suspends the layout.
+4. On /users/$userId, changing the active user must not remount or change the form (the page wins). Check this in the browser.
+5. Put the precedence in one pure function, e.g. resolveAssignee({ pageUserId, urlAssigneeId, activeUserId, validIds }), with unit tests in apps/web for each rule, including a bogus URL ID.

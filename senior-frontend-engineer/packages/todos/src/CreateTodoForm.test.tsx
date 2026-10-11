@@ -78,3 +78,20 @@ describe('CreateTodoForm failure list', () => {
     await waitFor(() => expect(alertItems()).toBeNull());
   });
 });
+
+describe('CreateTodoForm assignee preselection', () => {
+  it('does not preselect an assignee that is not an option (e.g. ?assigneeId=bogus)', async () => {
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <CreateTodoForm assigneeOptions={[{ id: 'ada', label: 'ada' }]} defaultAssigneeId="bogus" />
+      </QueryClientProvider>,
+    );
+    const assignee = screen.getByLabelText('Assignee') as HTMLSelectElement;
+    expect(assignee.value).toBe('');
+
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Something' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add todo' }));
+    await waitFor(() => expect(screen.getByText('Choose an assignee.')).toBeTruthy());
+    expect(createTodoMock).not.toHaveBeenCalled();
+  });
+});
