@@ -38,3 +38,14 @@
   failure list, assignee precedence).
 - Comparing dev against a production build before calling something a bug (StrictMode).
 - A fresh clone in an empty folder, following the README literally, as the final check.
+
+## Second AI session (reviewer): Claude in the Claude app, linked to my computer
+
+- Used only to review and verify, never to write project code. It read the repo on my machine through the app's computer link and ran checks in its own cloud container.
+- Reviewed each step's plan before coding and each result before committing; drafted many of my prompts to the coding agent and the judgment.md entries, which I edited.
+- Verified each step independently: copied the changed files into its own clone, ran install/lint/typecheck/test, then its own Playwright scripts in headless Chromium (keyboard-only flows, request timing, sampling the list every 50 ms, live-region announcements, axe-core).
+- Found issues the coding agent missed: the global "last pending create" count (step 6 plan), an alert cleared by an earlier submission's success (step 6), and validation errors not announced when the field already had focus (step 8).
+
+## Skills and MCP servers
+
+- No custom skills. No MCP servers in the coding agent beyond its built-in tools; the reviewer session reached my files only through the Claude app's computer link.

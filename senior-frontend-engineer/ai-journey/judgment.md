@@ -1,3 +1,12 @@
+## Summary
+
+- Claude Code wrote nearly all of the code, from a plan I wrote and reviewed one step at a time. A second AI session reviewed each plan and verified each step in a real browser before I committed.
+- Where it helped most: finding gaps in my plan (snapshot rollback with two concurrent creates, MSW in production builds), reading new library majors from their source instead of guessing, and accessibility details I didn't know (don't disable a focused button; live regions must exist before they change).
+- Where it was wrong: outdated version knowledge; a refetch condition that ignored the assignee; an error alert that a later success cleared; validation errors that were never announced; and a regression caused by one of my own fixes (a stale users cache). Most were found by checking behaviour in a real browser, not by reading code.
+- Where I overrode it: file-based routing, client-generated IDs, splitting route files, and building form components before anything used them.
+
+The rest of this file is the step-by-step log.
+
 ## Planning phase
 
 ### AI edited plan.md although I said not to
@@ -59,7 +68,7 @@
 
 - **What happened:** An AGENTS.md file appeared. Turborepo writes it automatically when it detects an AI agent running its commands.
 - **How I found it:** Checked untracked files before committing.
-- **What I did:** <kept and committed it / disabled it with agentGuidance: false>. Also ignored `.claude/settings.local.json` (local agent permissions).
+- **What I did:** Kept and committed it. Also ignored `.claude/settings.local.json` (local agent permissions).
 
 ### Verified, not trusted
 
@@ -149,7 +158,7 @@
 
 ### A step 3 fix that slipped through
 
-- The pnpm 11 pin I asked for before committing step 3 wasn't applied; step 3 was committed with pnpm 12, which corepack can't install. Caught while reviewing step 4; fixing it in its own commit.
+- The pnpm 11 pin I asked for before committing step 3 wasn't applied; step 3 was committed with pnpm 12, which corepack can't install. Caught while reviewing step 4; fixed together with the step 5 commit (pnpm 11.28.2, lockfile without the pnpm 12 bootstrap section). Checked: `corepack pnpm --version` gives 11.28.2, a frozen install works, and pnpm 11 leaves the lockfile unchanged.
 
 ## Step 5: todos feature
 
@@ -379,12 +388,12 @@
 ### AI changed my global environment, then undid it
 
 - **What happened:** During the fresh-clone check, nvm wasn't loaded in the agent's shell, so `corepack enable` ran under my Node 20 and created pnpm/yarn shims there.
-- **How found:** The AI noticed the failure, traced it, and removed the shims with `corepack disable`; I checked `which pnpm` myself afterwards.
+- **How found:** The AI noticed the failure, traced it, and removed the shims with `corepack disable`, then confirmed `which pnpm` pointed back to my previous pnpm.
 - **Lesson:** Environment-changing commands (corepack enable, global installs) need the same care as code changes; next time I'd ask for them to run in a container.
 
 ### Brief compliance check
 
-- The first README was accurate but about four times the "half a page" the brief asks for. I had it shortened and moved the details to docs/architecture.md. I wrote the reflection myself.
+- The first README was accurate but about four times the "half a page" the brief asks for; I had it shortened to the key decisions. The reflection was drafted with the second AI session, then corrected after the coding agent's review (see below).
 - A second session cloned the committed repo into an empty folder and ran install, lint, typecheck, tests, build and preview through corepack: all pass.
 
 ### The reviewer's draft was reviewed too

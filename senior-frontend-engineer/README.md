@@ -45,6 +45,8 @@ router or Jotai.
 - Changing the filter or the active user remounts the todo form, so a half-typed title is lost.
 - No optimistic item while a list is still loading; the todo appears once it's saved.
 - The mock repeats some validation rules on purpose, so it behaves like an independent server.
+- Server-generated IDs with a temp-ID swap rather than client-generated IDs: keeps the usual API
+  contract; the swapped row remounts, which is harmless because pending rows have nothing focusable.
 - Not done: a real screen-reader run, arrow keys on native selects, and committed e2e tests
   (the browser checks were scratch scripts).
 

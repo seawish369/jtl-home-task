@@ -69,7 +69,7 @@ The user you're "working as", picked once in the header. Not a login; just a UI 
 - The todo form gets `assigneeOptions: { id, label }[]` from apps/web (instead of a render slot).
 - /todos without assigneeId shows the active user's list without changing the URL.
 - Server-generated IDs with a temp-ID swap (client UUIDs considered, not used).
-- Validation: username 3–20, (letters/numbers, trimmed, unique (case-insensitive))
+- Validation: username 3–20 letters/numbers, trimmed, unique (case-insensitive);
   title 1–120, trimmed. Mock rejects duplicates and unknown assignees with field errors.
 - QueryClient: staleTime 30s, no retries on 4xx, no retries for mutations.
 - A11y is built into steps 1–5; step 8 is a keyboard-only check. Focus moves to the page
@@ -106,3 +106,8 @@ The user you're "working as", picked once in the header. Not a login; just a UI 
 - Second AI review: switched from slot to assigneeOptions; kept temp-ID swap and code-based routes against its suggestions; AI’s version expectations were outdated.
 - AI said "replace rather than refetch" — clarified: swap in place AND refetch
   when the last create settles.
+- Step 5: mock seed data is saved immediately (IDs were changing on reload).
+- Step 6: the form uses mutateAsync per submit; refetch waits for the last pending create of the same assignee, not of everyone.
+- Step 7: the Jotai store also goes into the router context so /todos can prefetch the active user's list; an unknown ?assigneeId= shows "not found" with no fallback.
+- Step 8: audit first, then fixes; added a message when service workers are unavailable.
+- Tests ended up in apps/web too (assignee precedence), not only for the optimistic create.
